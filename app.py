@@ -138,7 +138,8 @@ else:
 folium_map = folium.Map(location=[center_latitude, center_longitude], zoom_start=15, control_scale=True)
 
 # Decide colors / condition (as requested)
-pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
+#pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
+pp_condition = float(row["PP_diferencia"]) < 100
 geo_color = "green" if float(row["score"]) > 0.5 else "gray"
 
 # Add PP marker (number 2) only if PP exists AND condition is true (green)
