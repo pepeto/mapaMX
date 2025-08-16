@@ -116,28 +116,33 @@ pp_longitude = row["PP_longitud"]
 geo_latitude = row["lat"]
 geo_longitude = row["lng"]
 
-if pd.isna(pp_latitude) or pd.isna(pp_longitude) or pd.isna(geo_latitude) or pd.isna(geo_longitude):
-    st.warning("El registro seleccionado tiene coordenadas faltantes o no numéricas.")
+# Only require geocoded coordinates; ignore PP if invalid/missing
+if pd.isna(geo_latitude) or pd.isna(geo_longitude):
+    st.warning("El registro seleccionado no tiene lat/lng válidos.")
     st.dataframe(row.to_frame().T, use_container_width=True)
     st.stop()
 
 # ---------- Build Folium map ----------
 
-center_latitude = (pp_latitude + geo_latitude) / 2.0
-center_longitude = (pp_longitude + geo_longitude) / 2.0
+# PP validity flag: both coords must be present and numeric
+pp_valid = pd.notna(pp_latitude) and pd.notna(pp_longitude)
+
+# Map center: if PP invalid, center on geocoded; else, midpoint
+if pp_valid:
+    center_latitude = (pp_latitude + geo_latitude) / 2.0
+    center_longitude = (pp_longitude + geo_longitude) / 2.0
+else:
+    center_latitude = float(geo_latitude)
+    center_longitude = float(geo_longitude)
 
 folium_map = folium.Map(location=[center_latitude, center_longitude], zoom_start=15, control_scale=True)
 
-# Decide colors
+# Decide colors / condition (as requested)
 pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
 geo_color = "green" if float(row["score"]) > 0.5 else "gray"
 
-# Decide colors / condition (como ya lo tenías)
-pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
-geo_color = "green" if float(row["score"]) > 0.5 else "gray"
-
-# Add PP marker (number 2) only if condition is true
-if pp_condition:
+# Add PP marker (number 2) only if PP exists AND condition is true (green)
+if pp_valid and pp_condition:
     folium.Marker(
         location=[pp_latitude, pp_longitude],
         tooltip="PP point",
@@ -153,17 +158,17 @@ folium.Marker(
     icon=make_numbered_icon(1, geo_color)
 ).add_to(folium_map)
 
-# Draw line only if marker 2 is visible
-if pp_condition:
+# Draw line only if marker 2 is visible (and PP is valid)
+if pp_valid and pp_condition:
     folium.PolyLine(
         locations=[[pp_latitude, pp_longitude], [geo_latitude, geo_longitude]],
         weight=3,
         opacity=0.8
     ).add_to(folium_map)
 
-
-folium_map.fit_bounds([[pp_latitude, pp_longitude], [geo_latitude, geo_longitude]])
-
+# Fit bounds only if both points are present; else remain centered on geocoded
+if pp_valid and pp_condition:
+    folium_map.fit_bounds([[pp_latitude, pp_longitude], [geo_latitude, geo_longitude]])
 
 st_folium(folium_map, use_container_width=True, height=520)
 
