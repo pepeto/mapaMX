@@ -99,10 +99,10 @@ df["lng"] = to_float_series(df["lng"])
 st.title("Evaluación de Georeferenciación")
 
 total_records = int(df.index.max())
-st.caption(f"Registros disponibles: {total_records}")
+st.caption(f"Registros disponibles: {total_records+1}")
 
 selected_record_id = st.number_input(
-    f"Seleccionar Número de Registro (1-{total_records}):",
+    f"Seleccionar Número de Registro (1-{total_records+1}):",
     min_value=1,
     max_value=total_records,
     value=1,
