@@ -130,17 +130,16 @@ folium_map = folium.Map(location=[center_latitude, center_longitude], zoom_start
 
 # Decide colors
 pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
-pp_color = "green" if pp_condition else "gray"
-
 geo_color = "green" if float(row["score"]) > 0.5 else "gray"
 
-# Add PP marker (number 2)
-folium.Marker(
-    location=[pp_latitude, pp_longitude],
-    tooltip="PP point",
-    popup=f"PP: ({pp_latitude:.6f}, {pp_longitude:.6f}) | PP_method={row['PP_method']} | PP_diferencia={row['PP_diferencia']}",
-    icon=make_numbered_icon(2, pp_color)
-).add_to(folium_map)
+# Add PP marker (number 2) only if condition is true
+if pp_condition:
+    folium.Marker(
+        location=[pp_latitude, pp_longitude],
+        tooltip="PP point",
+        popup=f"PP: ({pp_latitude:.6f}, {pp_longitude:.6f}) | PP_method={row['PP_method']} | PP_diferencia={row['PP_diferencia']}",
+        icon=make_numbered_icon(2, "green")
+    ).add_to(folium_map)
 
 # Add Geocoded marker (number 1)
 folium.Marker(
@@ -157,6 +156,7 @@ folium.PolyLine(
 ).add_to(folium_map)
 
 folium_map.fit_bounds([[pp_latitude, pp_longitude], [geo_latitude, geo_longitude]])
+
 
 st_folium(folium_map, use_container_width=True, height=520)
 
