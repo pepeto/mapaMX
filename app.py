@@ -34,9 +34,7 @@ def validate_required_columns(df: pd.DataFrame, required_cols: list[str]) -> lis
     return [c for c in required_cols if c not in df.columns]
 
 def make_numbered_icon(number: int, color: str) -> folium.DivIcon:
-    """
-    Create a circular marker with a number and background color.
-    """
+    """Create a circular marker with a number and background color."""
     html = f"""
     <div style="
         background-color:{color};
@@ -82,7 +80,7 @@ else:
     st.error("No se encontró 'direcciones_X.csv' y no se subió ningún archivo.")
     st.stop()
 
-required_columns = ["PP_latitud", "PP_longitud", "lat", "lng", "PP_method", "score"]
+required_columns = ["PP_latitud", "PP_longitud", "lat", "lng", "PP_method", "score", "PP_diferencia"]
 missing_columns = validate_required_columns(df, required_columns)
 if len(missing_columns) > 0:
     st.error(f"Faltan columnas requeridas en el CSV: {', '.join(missing_columns)}")
@@ -93,16 +91,18 @@ df["PP_latitud"] = to_float_series(df["PP_latitud"])
 df["PP_longitud"] = to_float_series(df["PP_longitud"])
 df["lat"] = to_float_series(df["lat"])
 df["lng"] = to_float_series(df["lng"])
+df["PP_diferencia"] = to_float_series(df["PP_diferencia"])
+df["score"] = to_float_series(df["score"])
 
 # ---------- UI: Main ----------
 
 st.title("Evaluación de Georeferenciación")
 
 total_records = int(df.index.max())
-st.caption(f"Registros disponibles: {total_records+1}")
+st.caption(f"Registros disponibles: {total_records}")
 
 selected_record_id = st.number_input(
-    f"Seleccionar Número de Registro (1-{total_records+1}):",
+    f"Seleccionar Número de Registro (1-{total_records}):",
     min_value=1,
     max_value=total_records,
     value=1,
@@ -129,14 +129,16 @@ center_longitude = (pp_longitude + geo_longitude) / 2.0
 folium_map = folium.Map(location=[center_latitude, center_longitude], zoom_start=15, control_scale=True)
 
 # Decide colors
-pp_color = "green" if str(row["PP_method"]).upper() == "EXACT" else "gray"
+pp_condition = (str(row["PP_method"]).upper() == "EXACT") and (float(row["PP_diferencia"]) < 100)
+pp_color = "green" if pp_condition else "gray"
+
 geo_color = "green" if float(row["score"]) > 0.5 else "gray"
 
 # Add PP marker (number 2)
 folium.Marker(
     location=[pp_latitude, pp_longitude],
     tooltip="PP point",
-    popup=f"PP: ({pp_latitude:.6f}, {pp_longitude:.6f}) | PP_method={row['PP_method']}",
+    popup=f"PP: ({pp_latitude:.6f}, {pp_longitude:.6f}) | PP_method={row['PP_method']} | PP_diferencia={row['PP_diferencia']}",
     icon=make_numbered_icon(2, pp_color)
 ).add_to(folium_map)
 
